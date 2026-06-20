@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的學期回顧</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 引入 Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- ⚠️ 強制環境架構與防錯設定 (防白畫面) -->
+    <script>
+      Babel.registerPreset('my-react-classic', {
+        presets: [[Babel.availablePresets['react'], { runtime: 'classic' }]]
+      });
+    </script>
+
+    <style>
+        /* 自定義字體與背景 */
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+            background-color: #FAF6EB; /* 溫暖的米黃色背景 */
+            color: #333;
+        }
+
+        /* 模擬筆記本虛線的 Textarea */
+        .lined-textarea {
+            background-attachment: local;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 31px,
+                #cbd5e1 31px,
+                #cbd5e1 32px
+            );
+            line-height: 32px;
+            padding: 8px 0;
+            resize: none;
+            overflow: hidden;
+            border: none;
+            outline: none;
+            background-color: transparent;
+            width: 100%;
+        }
+
+        .lined-input {
+            border: none;
+            border-bottom: 2px dashed #cbd5e1;
+            background-color: transparent;
+            outline: none;
+            padding: 4px 8px;
+            width: 100%;
+        }
+        
+        .lined-input:focus, .lined-textarea:focus {
+            border-bottom-color: #94a3b8;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 31px,
+                #94a3b8 31px,
+                #94a3b8 32px
+            );
+        }
+
+        /* 隱藏卷軸 */
+        textarea::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- ⚠️ React 程式碼區塊 -->
+    <script type="text/babel" data-presets="my-react-classic">
+        /** @jsx React.createElement */
+        /** @jsxFrag React.Fragment */
+
+        const { useState, useRef, useEffect } = React;
+
+        // 繪圖板組件
+        const DrawingCanvas = () => {
+            const canvasRef = useRef(null);
+            const [isDrawing, setIsDrawing] = useState(false);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const context = canvas.getContext('2d');
+                // 初始化背景為白色透明，確保畫布乾淨
+                context.fillStyle = 'transparent';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.lineCap = 'round';
+                context.lineJoin = 'round';
+                context.lineWidth = 4;
+                context.strokeStyle = '#334155'; // 深藍灰色畫筆
+            }, []);
+
+            const startDrawing = (e) => {
+                const canvas = canvasRef.current;
+                const context = canvas.getContext('2d');
+                const rect = canvas.getBoundingClientRect();
+                
+                // 支援滑鼠與觸控
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                
+                context.beginPath();
+                context.moveTo(clientX - rect.left, clientY - rect.top);
+                setIsDrawing(true);
+            };
+
+            const draw = (e) => {
+                if (!isDrawing) return;
+                e.preventDefault(); // 防止觸控時螢幕滾動
+                
+                const canvas = canvasRef.current;
+                const context = canvas.getContext('2d');
+                const rect = canvas.getBoundingClientRect();
+                
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+
+                context.lineTo(clientX - rect.left, clientY - rect.top);
+                context.stroke();
+            };
+
+            const stopDrawing = () => {
+                if (isDrawing) {
+                    const canvas = canvasRef.current;
+                    const context = canvas.getContext('2d');
+                    context.closePath();
+                    setIsDrawing(false);
+                }
+            };
+
+            const clearCanvas = () => {
+                const canvas = canvasRef.current;
+                const context = canvas.getContext('2d');
+                context.clearRect(0, 0, canvas.width, canvas.height);
+            };
+
+            return (
+                <div className="flex flex-col items-center relative">
+                    <div className="relative">
+                        <canvas
+                            ref={canvasRef}
+                            width={220}
+                            height={220}
+                            className="bg-white border-[3px] border-slate-700 rounded-full cursor-crosshair shadow-sm touch-none"
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={stopDrawing}
+                            onMouseLeave={stopDrawing}
+                            onTouchStart={startDrawing}
+                            onTouchMove={draw}
+                            onTouchEnd={stopDrawing}
+                        />
+                        <button 
+                            onClick={clearCanvas}
+                            className="absolute -bottom-2 -right-2 bg-red-100 text-red-500 rounded-full p-2 text-xs shadow-md hover:bg-red-200 transition"
+                            title="清除重畫"
+                        >
+                            🧹
+                        </button>
+                    </div>
+                    <div className="text-slate-400 text-sm mt-2 font-medium tracking-wider flex items-center gap-1">
+                        <span className="text-blue-400">✏️</span> 可以直接在圓圈裡畫畫喔！
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="min-h-screen py-10 px-4 flex justify-center">
+                    <div className="max-w-4xl w-full bg-[#FFFDF8] rounded-3xl shadow-xl overflow-hidden border-2 border-slate-100 p-6 md:p-10 relative">
+                        
+                        {/* 背景裝飾 */}
+                        <div className="absolute top-10 left-10 text-pink-300 text-3xl animate-pulse">❤️</div>
+                        <div className="absolute top-12 right-12 text-pink-300 text-3xl animate-pulse">❤️</div>
+                        <div className="absolute top-24 right-20 text-yellow-400 text-4xl animate-bounce" style={{animationDuration: '3s'}}>⭐</div>
+                        
+                        {/* 標題區 (小狐狸與小熊代替原本的人物) */}
+                        <div className="flex justify-center items-center gap-4 mb-12 relative z-10">
+                            {/* 小狐狸 */}
+                            <div className="text-7xl drop-shadow-md hover:scale-110 transition-transform cursor-pointer">🦊</div>
+                            
+                            <div className="bg-[#FFE5B4] px-10 py-4 rounded-full border-4 border-dashed border-yellow-300 shadow-sm relative">
+                                <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-widest">
+                                    我的學期回顧
+                                </h1>
+                            </div>
+
+                            {/* 小熊 */}
+                            <div className="text-7xl drop-shadow-md hover:scale-110 transition-transform cursor-pointer">🐻</div>
+                        </div>
+
+                        <div className="space-y-8 relative z-10">
+                            
+                            {/* 第一區塊：心情 */}
+                            <div className="bg-blue-50/50 border-2 border-blue-200 rounded-3xl p-6 relative shadow-sm">
+                                <div className="absolute -top-4 -right-4 text-5xl">☁️</div>
+                                
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-10 h-10 rounded-full bg-blue-400 text-white font-black text-2xl flex items-center justify-center shadow-md">1</div>
+                                    <h2 className="text-xl font-bold text-slate-700">
+                                        請把這個圓圈畫成<br className="md:hidden"/>代表你這學期 <span className="bg-blue-200 px-2 py-1 rounded-lg text-blue-800">心情</span> 的表情！
+                                    </h2>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row items-center gap-10 pl-2 md:pl-12">
+                                    {/* 互動畫布 */}
+                                    <DrawingCanvas />
+                                    
+                                    <div className="flex-1 w-full">
+                                        <h3 className="text-lg font-bold text-slate-700 mb-2">為什麼你畫了這個表情？</h3>
+                                        <textarea 
+                                            className="lined-textarea text-lg text-slate-700 font-medium" 
+                                            rows="3"
+                                            placeholder="寫下你的原因..."
+                                        ></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 第二區塊：電影 */}
+                            <div className="bg-green-50/50 border-2 border-green-200 rounded-3xl p-6 relative shadow-sm">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-10 h-10 rounded-full bg-green-400 text-white font-black text-2xl flex items-center justify-center shadow-md">2</div>
+                                    <h2 className="text-xl font-bold text-slate-700">
+                                        如果把這學期拍成電影，<br className="md:hidden"/>你的 <span className="bg-green-200 px-2 py-1 rounded-lg text-green-800">電影片名</span> 是？
+                                    </h2>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row gap-8 pl-2 md:pl-12">
+                                    <div className="flex-1 flex flex-col items-center justify-center relative">
+                                        <div className="text-7xl absolute -top-10 -left-6 transform -rotate-12 drop-shadow-lg">🎬</div>
+                                        <input type="text" className="lined-input text-center text-2xl font-bold text-slate-800 mt-12 w-4/5" placeholder="輸入電影片名" />
+                                    </div>
+                                    
+                                    <div className="flex-1 w-full relative">
+                                        <div className="absolute -top-12 right-0 text-6xl drop-shadow-lg transform rotate-12">🍿</div>
+                                        <h3 className="text-lg font-bold text-slate-700 mb-2 mt-4 md:mt-0">為什麼取這個名字呢？</h3>
+                                        <textarea 
+                                            className="lined-textarea text-lg text-slate-700 font-medium" 
+                                            rows="2"
+                                            placeholder="寫下你的想法..."
+                                        ></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 第三區塊：未來 */}
+                            <div className="bg-yellow-50/50 border-2 border-yellow-200 rounded-3xl p-6 relative shadow-sm">
+                                <div className="absolute -top-6 right-4 text-6xl animate-spin" style={{animationDuration: '10s'}}>☀️</div>
+                                
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-10 h-10 rounded-full bg-yellow-400 text-white font-black text-2xl flex items-center justify-center shadow-md">3</div>
+                                    <h2 className="text-xl font-bold text-slate-700">
+                                        希望 <span className="bg-yellow-200 px-2 py-1 rounded-lg text-yellow-800">下學期的自己</span> ，<br className="md:hidden"/>可以變成什麼樣的人呢？
+                                    </h2>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row items-end gap-6 pl-2 md:pl-12">
+                                    <div className="flex-shrink-0 w-32 h-32 flex items-center justify-center pb-4">
+                                        <div className="text-8xl drop-shadow-md transform hover:-translate-y-2 transition-transform">🌱</div>
+                                    </div>
+                                    
+                                    <div className="flex-1 w-full">
+                                        <h3 className="text-lg font-bold text-slate-700 mb-2">請寫下或畫出你對自己的期待：</h3>
+                                        <textarea 
+                                            className="lined-textarea text-lg text-slate-700 font-medium" 
+                                            rows="3"
+                                            placeholder="寫下你的目標或期待..."
+                                        ></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 頁尾：給老師的話 */}
+                            <div className="bg-pink-50 border-2 border-pink-200 rounded-3xl p-6 relative shadow-sm mt-8">
+                                <h2 className="text-lg font-bold text-pink-500 mb-2">想對老師說的一句話：</h2>
+                                <textarea 
+                                    className="lined-textarea text-lg text-slate-700 font-medium" 
+                                    rows="1"
+                                    placeholder="把想對老師說的話寫在這裡..."
+                                ></textarea>
+                                
+                                <div className="absolute -bottom-6 right-4 flex items-center gap-2">
+                                    <div className="bg-blue-100 text-blue-600 px-4 py-2 rounded-full font-bold shadow-sm border border-blue-200">
+                                        謝謝你！
+                                    </div>
+                                    <div className="text-5xl drop-shadow-md hover:scale-110 transition-transform">🐥</div>
+                                </div>
+                                <div className="absolute top-4 right-4 text-5xl opacity-80">💖</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
